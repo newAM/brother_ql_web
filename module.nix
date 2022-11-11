@@ -40,7 +40,13 @@ in {
     logLevel = mkOption {
       type = types.enum ["DEBUG" "INFO" "WARNING" "ERROR"];
       default = "WARNING";
-      description = "Logging level";
+      description = "Logging level.";
+    };
+
+    defaultOrientation = mkOption {
+      type = types.enum ["standard" "rotated"];
+      default = "standard";
+      description = "Default orientation.";
     };
   };
 
@@ -61,7 +67,7 @@ in {
         };
         LABEL = {
           DEFAULT_SIZE = "12";
-          DEFAULT_ORIENTATION = "standard";
+          DEFAULT_ORIENTATION = cfg.defaultOrientation;
           DEFAULT_FONT_SIZE = 70;
           DEFAULT_FONTS = [
             {
