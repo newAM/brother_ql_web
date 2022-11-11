@@ -15,10 +15,10 @@ def get_fonts(folder=None):
     else:
         cmd = ["fc-list", ":", "file", "family", "style"]
     for line in subprocess.check_output(cmd).decode("utf-8").split("\n"):
-        logger.debug(line)
         line.strip()
         if not line:
             continue
+        logger.debug(line)
         if "otf" not in line and "ttf" not in line:
             continue
         parts = line.split(":")
