@@ -1,5 +1,8 @@
 # brother_ql_web
 
+[![CI](https://github.com/newAM/brother_ql_web/actions/workflows/ci.yml/badge.svg)](https://github.com/newAM/brother_ql_web/actions/workflows/ci.yml)
+[![black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 A fork of [pklaus/brother_ql_web](https://github.com/pklaus/brother_ql_web) for use with NixOS.
 
 ## Usage
