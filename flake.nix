@@ -16,7 +16,7 @@
         inherit (pyproject.tool.poetry) version;
         format = "pyproject";
 
-        src = ./.;
+        src = nixpkgs.lib.sources.sourceFilesBySuffices ./. [".py" ".toml"];
 
         nativeBuildInputs = [
           prev.poetry-core
