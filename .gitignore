@@ -1,5 +1,4 @@
-# ignore config.json
-config.json
+/result*
 
 ### Python template
 # Byte-compiled / optimized / DLL files
