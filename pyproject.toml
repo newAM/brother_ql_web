@@ -9,8 +9,9 @@ license = "GPL-3.0-only"
 python = "^3.8"
 
 bottle = "*"
-Jinja2 = "*"
 brother-ql = "*"
+Jinja2 = "*"
+systemd-python = "*"
 
 [tool.poetry.scripts]
 brother_ql_web = "brother_ql_web.__init__:main"

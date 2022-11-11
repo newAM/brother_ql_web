@@ -1,21 +1,21 @@
 import argparse
+import functools
 import json
 import logging
 import os
 import random
 import sys
+from systemd.journal import JournalHandler
 from io import BytesIO
 
 import bottle
 from bottle import (
-    route,
-    get,
-    post,
     response,
     request,
-    jinja2_view as view,
+    jinja2_view,
     static_file,
     redirect,
+    Bottle,
 )
 from PIL import Image, ImageDraw, ImageFont
 
@@ -35,18 +35,38 @@ LABEL_SIZES = [(name, label_type_specs[name]["name"]) for name in label_sizes]
 CONFIG = {}
 
 
-@route("/")
+# https://stackoverflow.com/a/31093434
+def log_to_logger(fn):
+    """Wrap a Bottle request so that a log line is emitted after it's handled."""
+
+    @functools.wraps(fn)
+    def _log_to_logger(*args, **kwargs):
+        logger = logging.getLogger("bottle")
+        actual_response = fn(*args, **kwargs)
+        logger.debug(
+            f"{request.remote_addr} {request.method} {request.url} {response.status}"
+        )
+        return actual_response
+
+    return _log_to_logger
+
+
+app = Bottle()
+app.install(log_to_logger)
+
+
+@app.route("/")
 def index():
     redirect("/labeldesigner")
 
 
-@route("/static/<filename:path>")
+@app.route("/static/<filename:path>")
 def serve_static(filename):
     return static_file(filename, root=os.getenv("STATIC_PATH"))
 
 
-@route("/labeldesigner")
-@view("labeldesigner.jinja2")
+@app.route("/labeldesigner")
+@jinja2_view("labeldesigner.jinja2")
 def labeldesigner():
     font_family_names = sorted(list(FONTS.keys()))
     return {
@@ -163,8 +183,8 @@ def create_label_im(text, **kwargs):
     return im
 
 
-@get("/api/preview/text")
-@post("/api/preview/text")
+@app.get("/api/preview/text")
+@app.post("/api/preview/text")
 def get_preview_image():
     context = get_label_context(request)
     im = create_label_im(**context)
@@ -186,8 +206,8 @@ def image_to_png_bytes(im):
     return image_buffer.read()
 
 
-@post("/api/print/text")
-@get("/api/print/text")
+@app.post("/api/print/text")
+@app.get("/api/print/text")
 def print_text():
     """
     API to print a label
@@ -250,21 +270,31 @@ def print_text():
 
 def main():
     global DEBUG, FONTS, BACKEND_CLASS, CONFIG
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description="Brother QL WebUI")
     parser.add_argument("config", help="Path to the config file")
     args = parser.parse_args()
 
     with open(args.config, "r") as f:
         CONFIG = json.load(f)
 
-    if CONFIG["SERVER"]["LOGLEVEL"] == "DEBUG":
+    loglevel = CONFIG["SERVER"]["LOGLEVEL"]
+    if loglevel == "DEBUG":
         DEBUG = True
     else:
         DEBUG = False
 
     additional_font_folder = CONFIG["SERVER"]["ADDITIONAL_FONT_FOLDER"]
 
-    logging.basicConfig(level=CONFIG["SERVER"]["LOGLEVEL"])
+    handler = JournalHandler(SYSLOG_IDENTIFIER="brother_ql_web")
+    handler.setLevel(loglevel)
+    formatter = logging.Formatter("[{name}] {message}", style="{")
+    handler.setFormatter(formatter)
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
+    root_logger.addHandler(handler)
+
+    logger.debug("logging initialized")
 
     try:
         selected_backend = guess_backend(CONFIG["PRINTER"]["PRINTER"])
@@ -285,33 +315,26 @@ def main():
         FONTS.update(get_fonts(additional_font_folder))
 
     if not FONTS:
-        sys.stderr.write(
-            "Not a single font was found on your system. "
-            'Please install some or use the "--font-folder" argument.\n'
-        )
+        logger.error("Not a single font was found on your system. Please install some.")
         sys.exit(2)
 
     for font in CONFIG["LABEL"]["DEFAULT_FONTS"]:
         try:
             FONTS[font["family"]][font["style"]]
             CONFIG["LABEL"]["DEFAULT_FONTS"] = font
-            logger.debug("Selected the following default font: {}".format(font))
+            logger.debug(f"Selected the following default font: {font}")
             break
         except Exception:
             pass
     if CONFIG["LABEL"]["DEFAULT_FONTS"] is None:
-        sys.stderr.write(
-            "Could not find any of the default fonts. Choosing a random one.\n"
-        )
+        logger.error("Could not find any of the default fonts. Choosing a random one.")
         family = random.choice(list(FONTS.keys()))
         style = random.choice(list(FONTS[family].keys()))
         CONFIG["LABEL"]["DEFAULT_FONTS"] = {"family": family, "style": style}
-        sys.stderr.write(
+        logger.error(
             "The default font is now set to: {family} ({style})\n".format(
                 **CONFIG["LABEL"]["DEFAULT_FONTS"]
             )
         )
 
-    bottle.run(
-        host=CONFIG["SERVER"]["HOST"], port=CONFIG["SERVER"]["PORT"], debug=DEBUG
-    )
+    app.run(host=CONFIG["SERVER"]["HOST"], port=CONFIG["SERVER"]["PORT"], quiet=True)

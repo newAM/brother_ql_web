@@ -113,10 +113,18 @@ category = "main"
 optional = false
 python-versions = ">=3.6.0"
 
+[[package]]
+name = "systemd-python"
+version = "234"
+description = "Python interface for libsystemd"
+category = "main"
+optional = false
+python-versions = "*"
+
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "bd2f53ed2398309b7e8627afcc80c0ba703fe8065f1aeb31575611e31f7166b8"
+content-hash = "cf411a6c2b5ebf5f66d952b9d68aa6d9eaa399dccd92f025bb438cc4b8394894"
 
 [metadata.files]
 attrs = [
@@ -257,4 +265,7 @@ pillow = [
 pyusb = [
     {file = "pyusb-1.2.1-py3-none-any.whl", hash = "sha256:2b4c7cb86dbadf044dfb9d3a4ff69fd217013dbe78a792177a3feb172449ea36"},
     {file = "pyusb-1.2.1.tar.gz", hash = "sha256:a4cc7404a203144754164b8b40994e2849fde1cfff06b08492f12fff9d9de7b9"},
+]
+systemd-python = [
+    {file = "systemd-python-234.tar.gz", hash = "sha256:fd0e44bf70eadae45aadc292cb0a7eb5b0b6372cd1b391228047d33895db83e7"},
 ]

@@ -23,9 +23,10 @@
         ];
 
         propagatedBuildInputs = [
-          prev.brother-ql
           prev.bottle
+          prev.brother-ql
           prev.jinja2
+          prev.systemd
         ];
 
         pythonImportsCheck = [
