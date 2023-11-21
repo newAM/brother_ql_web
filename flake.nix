@@ -1,11 +1,16 @@
 {
   description = "WebUI for brother QL label printers";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    poetry2nix.url = "github:nix-community/poetry2nix";
+    poetry2nix.inputs.nixpkgs.follows = "nixpkgs";
+  };
 
   outputs = {
     self,
     nixpkgs,
+    poetry2nix,
   }: let
     pyproject = nixpkgs.lib.importTOML ./pyproject.toml;
     pname = pyproject.tool.poetry.name;
@@ -16,7 +21,7 @@
         inherit (pyproject.tool.poetry) version;
         format = "pyproject";
 
-        src = nixpkgs.lib.sources.sourceFilesBySuffices ./. [".py" ".toml"];
+        src = nixpkgs.lib.sources.sourceFilesBySuffices self [".py" ".toml"];
 
         nativeBuildInputs = [
           prev.poetry-core
@@ -51,7 +56,10 @@
 
     pkgs = import nixpkgs {
       system = "x86_64-linux";
-      overlays = [overlay];
+      overlays = [
+        poetry2nix.overlays.default
+        overlay
+      ];
     };
   in {
     overlays = {
@@ -66,8 +74,8 @@
     nixosModules.default = import ./module.nix;
 
     checks.x86_64-linux = let
-      nixSrc = nixpkgs.lib.sources.sourceFilesBySuffices ./. [".nix"];
-      pySrc = nixpkgs.lib.sources.sourceFilesBySuffices ./. [".py"];
+      nixSrc = nixpkgs.lib.sources.sourceFilesBySuffices self [".nix"];
+      pySrc = nixpkgs.lib.sources.sourceFilesBySuffices self [".py"];
     in {
       pkg = self.packages.x86_64-linux.default;
 
